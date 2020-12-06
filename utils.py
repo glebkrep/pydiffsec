@@ -22,7 +22,25 @@ def get_sha1_of_file(file_path):
 # a - append
 # w - overwrite
 def get_base_file(base_file_name, absolute_file_path='', mode='a'):
-    full_file_name = absolute_file_path + base_file_name + ".txt"
+    # todo if already contains .txt dont add that
+    full_file_name = absolute_file_path + base_file_name
+    if ".txt" not in base_file_name:
+        full_file_name += ".txt"
+
     os.makedirs(os.path.dirname(full_file_name), exist_ok=True)
-    with open(full_file_name, mode) as f:
-        return f
+    return open(full_file_name, mode)
+
+
+def get_all_files_in_directory(directory):
+    listOfFile = os.listdir(directory)
+    allFiles = list()
+    # Iterate over all the entries
+    for entry in listOfFile:
+        # Create full path
+        fullPath = os.path.join(directory, entry)
+        # If entry is a directory then get the list of files in this directory
+        if os.path.isdir(fullPath):
+            allFiles = allFiles + get_all_files_in_directory(fullPath)
+        else:
+            allFiles.append(fullPath)
+    return allFiles
