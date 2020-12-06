@@ -3,12 +3,13 @@ import pathlib
 
 import utils
 
-#<filesystem host="mysys" dir="."> 
-#<new>./analyze/Project1/fd2.bck</new> 
-#<relocated orig="./farm.sh">./analyze/Project1/farm2.sh</relocated> 
-#<changed>./caveat.sample.ch</changed> 
-#<removed>./x.x</removed> 
-#</filesystem>
+
+# <filesystem host="mysys" dir="."> 
+# <new>./analyze/Project1/fd2.bck</new> 
+# <relocated orig="./farm.sh">./analyze/Project1/farm2.sh</relocated> 
+# <changed>./caveat.sample.ch</changed> 
+# <removed>./x.x</removed> 
+# </filesystem>
 
 
 class FileHash:
@@ -27,12 +28,14 @@ class SysHashOutput:
 
 
 class OutputDiff:
-    def __init__(self, resultCode, unchanged_files, new_files, changed_files, removed_files):
+    def __init__(self, resultCode, unchanged_files, new_files, changed_files, removed_files, moved_files):
         self.result = resultCode
         self.unchanged_files = unchanged_files
         self.new_files = new_files
         self.changed_files = changed_files
         self.removed_files = removed_files
+        self.moved_files = moved_files
+
 
 class Constants:
     TEST_CONST_HASHING_DIRECTORY = r"/Users/gleb/PycharmProjects/pythonProject/"
@@ -99,11 +102,11 @@ def get_dif_sys_output(previous_output, current_output):
     while len(previous_output.file_hashes) - 1 >= prev_id or len(current_output.file_hashes) - 1 >= curr_id:
         if len(previous_output.file_hashes) - 1 < prev_id:
             new_files.append(current_output.file_hashes[curr_id])
-            curr_id+=1
+            curr_id += 1
             continue
         elif len(current_output.file_hashes) - 1 < curr_id:
             removed_files.append(previous_output.file_hashes[prev_id])
-            prev_id+=1
+            prev_id += 1
             continue
 
         prev_item = previous_output.file_hashes[prev_id]
@@ -125,10 +128,25 @@ def get_dif_sys_output(previous_output, current_output):
             new_files.append(curr_item)
             curr_id += 1
             continue
-    return OutputDiff(0, unchanged_files, new_files, changed_files, removed_files)
 
-#def form_report(diff_sys_output):
+    moved_files = list()
+    new_files_dict = dict()
+    for new_file in new_files:
+        new_files_dict[new_file.hash] = new_file.path
+    for file in removed_files:
+        if file.hash in new_files_dict:
+            moved_files.append((file, new_files_dict[file.hash]))
+            removed_files.remove(file)
+            #todo remove after testing
+            print("TEST")
+            print("new files:")
+            for new_file in new_files:
+                if new_file.path ==new_files_dict[file.hash] and new_file.hash ==file.hash:
+                    new_files.remove(new_file)
+    return OutputDiff(0, unchanged_files, new_files, changed_files, removed_files, moved_files)
 
+
+# def form_report(diff_sys_output):
 
 
 def main():
@@ -136,7 +154,7 @@ def main():
     # file_sys_hash = get_file_hash_from_base_file()
     # print(file_sys_hash.hashing_directory)
     # print(file_sys_hash.file_hashes)
-    create_base_file(Constants.TEST_CONST_HASHING_DIRECTORY)
+    #create_base_file(Constants.TEST_CONST_HASHING_DIRECTORY)
     sys_hash_output = get_file_hash_from_base_file()
     compare_hash_output = get_file_hash_from_base_file(create_compare_file(sys_hash_output.hashing_directory).name, "")
     diff = get_dif_sys_output(sys_hash_output, compare_hash_output)
@@ -153,7 +171,9 @@ def main():
     print("new:")
     for file in diff.new_files:
         print(file.path)
-
+    print("moved:")
+    for file in diff.moved_files:
+        print(file[0].path + " <- old new -> "+ file[1])
 
 if __name__ == '__main__':
     main()
