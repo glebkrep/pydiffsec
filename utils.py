@@ -21,11 +21,11 @@ def get_sha1_of_file(file_path):
 # creates base file in specified directory which will store current hashes of files in path
 # a - append
 # w - overwrite
-def get_base_file(base_file_name, absolute_file_path='', mode='a'):
+def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt"):
     # todo if already contains .txt dont add that
     full_file_name = absolute_file_path + base_file_name
-    if ".txt" not in base_file_name:
-        full_file_name += ".txt"
+    if ext not in base_file_name:
+        full_file_name += ext
 
     os.makedirs(os.path.dirname(full_file_name), exist_ok=True)
     return open(full_file_name, mode)
