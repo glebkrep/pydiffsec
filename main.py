@@ -1,23 +1,54 @@
+import hashlib
 import os
 import pathlib
 from xml.dom import minidom
-
-import utils
 from xml.etree.ElementTree import Element, SubElement, Comment, ElementTree, tostring
 import sys
-# from lxml import etree
-import xml.dom.minidom
+
+# UTILS:
+# gets sha1 of file... -_-
+def get_sha1_of_file(file_path):
+    print(file_path)
+    h = hashlib.sha1()
+    # чтобы не тратить 1 к 1 физическую:оперативную память будем чанковать файлы
+    b = bytearray(128 * 1024)
+    mv = memoryview(b)
+    with open(file_path, 'rb', buffering=0) as f:
+        for n in iter(lambda: f.readinto(mv), 0):
+            h.update(mv[:n])
+    return h.hexdigest()
 
 
-# from ElementTree_pretty import prettify
+# creates base file in specified directory which will store current hashes of files in path
+# a - append
+# w - overwrite
+def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt",overwrite=True):
+    full_file_name = absolute_file_path + base_file_name
+    if ext not in base_file_name:
+        full_file_name += ext
+    if pathlib.Path(full_file_name).is_file() and overwrite==False:
+        if ("y" in input(full_file_name+" file already exists, overwrite? [y/n]: ...")):
+            return get_file(base_file_name, absolute_file_path, mode, ext, True)
+        else:
+            return False
+    os.makedirs(os.path.dirname(full_file_name), exist_ok=True)
+    return open(full_file_name, mode)
 
-# <filesystem host="mysys" dir="."> 
-# <new>./analyze/Project1/fd2.bck</new> 
-# <relocated orig="./farm.sh">./analyze/Project1/farm2.sh</relocated> 
-# <changed>./caveat.sample.ch</changed> 
-# <removed>./x.x</removed> 
-# </filesystem>
 
+def get_all_files_in_directory(directory):
+    listOfFile = os.listdir(directory)
+    allFiles = list()
+    # Iterate over all the entries
+    for entry in listOfFile:
+        # Create full path
+        fullPath = os.path.join(directory, entry)
+        # If entry is a directory then get the list of files in this directory
+        if os.path.isdir(fullPath):
+            allFiles = allFiles + get_all_files_in_directory(fullPath)
+        else:
+            allFiles.append(fullPath)
+    return allFiles
+# -
 
 class FileHash:
     def __init__(self, absolute_file_path, file_hash):
@@ -57,9 +88,9 @@ def create_base_file(hashing_directory,
                      base_file_directory=str(pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY):
     base_file_name = Constants.CONST_DEF_BASE_FILE_NAME
     file_hash_list = list()
-    for file in utils.get_all_files_in_directory(hashing_directory):
-        file_hash_list.append(FileHash(file, utils.get_sha1_of_file(file)))
-    base_file = utils.get_file(base_file_name, base_file_directory, "w", overwrite=False)
+    for file in get_all_files_in_directory(hashing_directory):
+        file_hash_list.append(FileHash(file, get_sha1_of_file(file)))
+    base_file = get_file(base_file_name, base_file_directory, "w", overwrite=False)
     if base_file == False:
         print("Execution stopped; can't continue without rewriting file")
         return
@@ -76,7 +107,7 @@ def get_file_hash_from_base_file(base_file_name=Constants.CONST_DEF_BASE_FILE_NA
                                      pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY):
     file_hash_list = list()
     try:
-        base_file = utils.get_file(base_file_name, base_file_directory, "r")
+        base_file = get_file(base_file_name, base_file_directory, "r")
     except FileNotFoundError:
         print("There is no " + Constants.CONST_DEF_BASE_FILE_NAME + " in " + base_file_directory)
         exit()
@@ -94,9 +125,9 @@ def create_compare_file(hashing_directory, base_file_directory=str(
     pathlib.Path().absolute()) + Constants.CONST_DEF_COMPARE_FILE_DIRECTORY):
     compare_file_name = Constants.CONST_DEF_COMPARE_FILE_NAME
     file_hash_list = list()
-    for file in utils.get_all_files_in_directory(hashing_directory):
-        file_hash_list.append(FileHash(file, utils.get_sha1_of_file(file)))
-    base_file = utils.get_file(compare_file_name, base_file_directory, "w")
+    for file in get_all_files_in_directory(hashing_directory):
+        file_hash_list.append(FileHash(file, get_sha1_of_file(file)))
+    base_file = get_file(compare_file_name, base_file_directory, "w")
     base_file.write(hashing_directory + "\n")
     file_hash_list.sort(key=lambda x: x.path)
     for file_hash in file_hash_list:
@@ -194,7 +225,7 @@ def create_report_file(diff_sys_output, mode="xml",
                                     new_path=getReportPath(path_rel_abs, moved_file[1], hash_dir))
             moved.append(moved_element)
 
-        report_file = utils.get_file("report.xml", report_file_dir, "w", ".xml")
+        report_file = get_file("report.xml", report_file_dir, "w", ".xml")
         report_file.write(prettify_xml(top))
         report_file.close()
         print("report xml file created: " + report_file.name)
@@ -219,7 +250,7 @@ def create_report_file(diff_sys_output, mode="xml",
             report += "\t\t" + getReportPath(path_rel_abs, file[0].path, hash_dir) + " moved to " + getReportPath(
                 path_rel_abs, file[1], hash_dir) + "\n"
 
-        report_file = utils.get_file("report.txt", report_file_dir, "w", ".txt")
+        report_file = get_file("report.txt", report_file_dir, "w", ".txt")
         report_file.write(report)
         report_file.close()
         print("report txt file created: " + report_file.name)
@@ -240,8 +271,18 @@ def prettify_xml(elem):
 
 
 def help_flow():
-    # todo help text
-    print("help")
+    print("PyDiffSec - скрипт, для контроля изменений файловой системы\n\n")
+    print("Команды:\n\n")
+    print("'help' - выводит сообщение с описанием комманд\n\n")
+    print("'new [-d fileDir] [-hd hashDir]' - создание нового базового файла (запись sha1 хэшей всех файлов в выбранной директории)\n")
+    print("\t [-d fileDir] - указание директории для создания базового файла (по умолчанию - текущая директория/basefile/)\n")
+    print("\t [-hd hashDir] - указание директории, которую нужно хэшировать (по умолчанию - текущая директория)\n\n")
+
+    print("'report [-rd reportFileDir] [-bd baseFileDir] [-r|-a pathInReport] [-xml|-txt reportFormat]' - создание нового отчета изменений файлов\n")
+    print("\t [-rd reportFileDir] - указание директории для создания отчета (по умолчанию - текущая директория/basefile/)\n")
+    print("\t [-bd baseFileDir] - указание директории, в которой находится базовый файл (по умолчанию - текущая директория/basefile/)\n\n")
+    print("\t [-r|-a pathInReport] - выбор формата путей файлов в отчете (относительный|полный) (по умолчанию - полный)\n")
+    print("\t [-xml|-txt reportFormat] - выбор формата отчета (по умолчанию - xml)\n\n")
 
 
 def create_basefile_flow(arguments):
@@ -282,7 +323,7 @@ def report_flow(arguments):
     hash_dir = str(pathlib.Path().absolute())
 
     if (len(arguments) == 2):
-        sys_hash_output = get_file_hash_from_base_file(base_file_dir)
+        sys_hash_output = get_file_hash_from_base_file(base_file_directory=base_file_dir)
         compare_hash_output = get_file_hash_from_base_file(create_compare_file(sys_hash_output.hashing_directory).name,
                                                            "")
         diff = get_dif_sys_output(sys_hash_output, compare_hash_output)
