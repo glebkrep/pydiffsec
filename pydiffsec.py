@@ -20,7 +20,7 @@ def get_sha1_of_file(file_path):
     return h.hexdigest()
 
 
-# creates base file in specified directory which will store current hashes of files in path
+# creates or gets file in specified directory
 # a - append
 # w - overwrite
 def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt", overwrite=True):
@@ -36,6 +36,7 @@ def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt", overwr
     return open(full_file_name, mode)
 
 
+# gets all files from directory and returns them as list
 def get_all_files_in_directory(directory):
     list_of_file = os.listdir(directory)
     all_files = list()
@@ -51,8 +52,23 @@ def get_all_files_in_directory(directory):
     return all_files
 
 
+# util function for getting proper path relative or absolute
+def get_report_path(path_rel_abs, path, root_path):
+    if path_rel_abs == "a":
+        return path
+    elif path_rel_abs == "r":
+        output_path = path.replace(str(root_path), "")
+        return output_path
+
+
+# util function for generating prettier xml (with indents) for easier human reading
+def prettify_xml(elem):
+    rough_string = tostring(elem, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
 # ----
 
+# Data classes:
 class FileHash:
     def __init__(self, absolute_file_path, file_hash):
         self.path = absolute_file_path
@@ -78,14 +94,15 @@ class OutputDiff:
 
 
 class Constants:
-    # TEST_CONST_HASHING_DIRECTORY = r"/Users/gleb/PycharmProjects/pythonProject/"
     CONST_SPLITTER = "  ::  "
     CONST_DEF_BASE_FILE_NAME = 'basefile'
     CONST_DEF_BASE_FILE_DIRECTORY = "/basefile/"
     CONST_DEF_COMPARE_FILE_NAME = 'compare'
     CONST_DEF_COMPARE_FILE_DIRECTORY = "/basefile/"
+# ----
 
 
+# creates base file which stores sha1 hashes of all the files in base_file_directory
 def create_base_file(hashing_directory,
                      base_file_directory=str(pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY):
     base_file_name = Constants.CONST_DEF_BASE_FILE_NAME
@@ -104,6 +121,7 @@ def create_base_file(hashing_directory,
     print("base file created: " + base_file.name)
 
 
+# returns data class from previously generated basefile
 def get_file_hash_from_base_file(base_file_name=Constants.CONST_DEF_BASE_FILE_NAME,
                                  base_file_directory=str(
                                      pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY):
@@ -123,6 +141,7 @@ def get_file_hash_from_base_file(base_file_name=Constants.CONST_DEF_BASE_FILE_NA
     return SysHashOutput(hashing_directory, file_hash_list)
 
 
+# creates new file which is exactly like basefile but with new data for further to be compared to original file
 def create_compare_file(hashing_directory, base_file_directory=str(
     pathlib.Path().absolute()) + Constants.CONST_DEF_COMPARE_FILE_DIRECTORY):
     compare_file_name = Constants.CONST_DEF_COMPARE_FILE_NAME
@@ -138,6 +157,7 @@ def create_compare_file(hashing_directory, base_file_directory=str(
     return base_file
 
 
+# returns difference between two sets of data from previously generated basefile and compare file
 def get_dif_sys_output(previous_output, current_output):
     if previous_output.hashing_directory != current_output.hashing_directory:
         return OutputDiff(1, 1, 1, 1, 1)
@@ -192,6 +212,7 @@ def get_dif_sys_output(previous_output, current_output):
     return OutputDiff(0, unchanged_files, new_files, changed_files, removed_files, moved_files)
 
 
+# creates report file which contains all the information about unchanged, changed, removed, new and moved files
 def create_report_file(diff_sys_output, mode="xml",
                        report_file_dir=str(pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY,
                        path_rel_abs='a',
@@ -258,20 +279,9 @@ def create_report_file(diff_sys_output, mode="xml",
         print("report txt file created: " + report_file.name)
 
 
-def get_report_path(path_rel_abs, path, root_path):
-    if path_rel_abs == "a":
-        return path
-    elif path_rel_abs == "r":
-        output_path = path.replace(str(root_path), "")
-        return output_path
+# FLOW functions:
 
-
-def prettify_xml(elem):
-    rough_string = tostring(elem, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    return reparsed.toprettyxml(indent="  ")
-
-
+# prints help in terminal 'python3 pydiffsec.py help'
 def help_flow():
     print("PyDiffSec - скрипт, для контроля изменений файловой системы\n\n")
     print("Команды:\n\n")
@@ -293,6 +303,7 @@ def help_flow():
     print("\t [-xml|-txt reportFormat] - выбор формата отчета (по умолчанию - xml)\n\n")
 
 
+# creates basefile; called from terminal 'python3 pydiffsec.py new'
 def create_basefile_flow(arguments):
     if len(arguments) == 2:
         create_base_file(str(pathlib.Path().absolute()))
@@ -323,6 +334,7 @@ def create_basefile_flow(arguments):
         create_base_file(hash_dir, file_dir)
 
 
+# creates report file; called from terminal 'python3 pydiffsec.py report'
 def report_flow(arguments):
     report_file_dir = str(pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY
     base_file_dir = str(pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY
@@ -385,6 +397,7 @@ def report_flow(arguments):
         diff = get_dif_sys_output(sys_hash_output, compare_hash_output)
         hash_dir = sys_hash_output.hashing_directory
         create_report_file(diff, report_format, report_file_dir, path_rel_abs, hash_dir)
+# ---
 
 
 def main():
