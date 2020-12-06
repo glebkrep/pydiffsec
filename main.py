@@ -2,8 +2,9 @@ import hashlib
 import os
 import pathlib
 from xml.dom import minidom
-from xml.etree.ElementTree import Element, SubElement, Comment, ElementTree, tostring
+from xml.etree.ElementTree import Element, SubElement, Comment, tostring
 import sys
+
 
 # UTILS:
 # gets sha1 of file... -_-
@@ -22,12 +23,12 @@ def get_sha1_of_file(file_path):
 # creates base file in specified directory which will store current hashes of files in path
 # a - append
 # w - overwrite
-def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt",overwrite=True):
+def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt", overwrite=True):
     full_file_name = absolute_file_path + base_file_name
     if ext not in base_file_name:
         full_file_name += ext
-    if pathlib.Path(full_file_name).is_file() and overwrite==False:
-        if ("y" in input(full_file_name+" file already exists, overwrite? [y/n]: ...")):
+    if pathlib.Path(full_file_name).is_file() and overwrite == False:
+        if "y" in input(full_file_name + " file already exists, overwrite? [y/n]: ..."):
             return get_file(base_file_name, absolute_file_path, mode, ext, True)
         else:
             return False
@@ -36,19 +37,21 @@ def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt",overwri
 
 
 def get_all_files_in_directory(directory):
-    listOfFile = os.listdir(directory)
-    allFiles = list()
+    list_of_file = os.listdir(directory)
+    all_files = list()
     # Iterate over all the entries
-    for entry in listOfFile:
+    for entry in list_of_file:
         # Create full path
-        fullPath = os.path.join(directory, entry)
+        full_path = os.path.join(directory, entry)
         # If entry is a directory then get the list of files in this directory
-        if os.path.isdir(fullPath):
-            allFiles = allFiles + get_all_files_in_directory(fullPath)
+        if os.path.isdir(full_path):
+            all_files = all_files + get_all_files_in_directory(full_path)
         else:
-            allFiles.append(fullPath)
-    return allFiles
-# -
+            all_files.append(full_path)
+    return all_files
+
+
+# ----
 
 class FileHash:
     def __init__(self, absolute_file_path, file_hash):
@@ -60,14 +63,13 @@ class SysHashOutput:
     def __init__(self, hashing_directory, file_hashes):
         self.file_hashes = file_hashes
         self.hashing_directory = hashing_directory
-
         # 0 - success
         # 1 - error:different directories were hashed
 
 
 class OutputDiff:
-    def __init__(self, resultCode, unchanged_files, new_files, changed_files, removed_files, moved_files):
-        self.result = resultCode
+    def __init__(self, result_code, unchanged_files, new_files, changed_files, removed_files, moved_files):
+        self.result = result_code
         self.unchanged_files = unchanged_files
         self.new_files = new_files
         self.changed_files = changed_files
@@ -204,25 +206,25 @@ def create_report_file(diff_sys_output, mode="xml",
         unchanged = SubElement(top, 'unchanged_files',
                                count=str(len(diff_sys_output.unchanged_files)))
         for unchanged_file in diff_sys_output.unchanged_files:
-            elem = Element("item", path=getReportPath(path_rel_abs, unchanged_file.path, hash_dir))
+            elem = Element("item", path=get_report_path(path_rel_abs, unchanged_file.path, hash_dir))
             unchanged.append(elem)
 
         changed = SubElement(top, 'changed_files', count=str(len(diff_sys_output.changed_files)))
         for changed_file in diff_sys_output.changed_files:
-            changed.append(Element("item", path=getReportPath(path_rel_abs, changed_file.path, hash_dir)))
+            changed.append(Element("item", path=get_report_path(path_rel_abs, changed_file.path, hash_dir)))
 
         removed = SubElement(top, 'removed_files', count=str(len(diff_sys_output.removed_files)))
         for removed_file in diff_sys_output.removed_files:
-            removed.append(Element("item", path=getReportPath(path_rel_abs, removed_file.path, hash_dir)))
+            removed.append(Element("item", path=get_report_path(path_rel_abs, removed_file.path, hash_dir)))
 
         new = SubElement(top, 'new_files', count=str(len(diff_sys_output.new_files)))
         for new_file in diff_sys_output.new_files:
-            new.append(Element("item", path=getReportPath(path_rel_abs, new_file.path, hash_dir)))
+            new.append(Element("item", path=get_report_path(path_rel_abs, new_file.path, hash_dir)))
 
         moved = SubElement(top, 'moved_files', count=str(len(diff_sys_output.moved_files)))
         for moved_file in diff_sys_output.moved_files:
-            moved_element = Element("item", old_path=getReportPath(path_rel_abs, moved_file[0].path, hash_dir),
-                                    new_path=getReportPath(path_rel_abs, moved_file[1], hash_dir))
+            moved_element = Element("item", old_path=get_report_path(path_rel_abs, moved_file[0].path, hash_dir),
+                                    new_path=get_report_path(path_rel_abs, moved_file[1], hash_dir))
             moved.append(moved_element)
 
         report_file = get_file("report.xml", report_file_dir, "w", ".xml")
@@ -235,19 +237,19 @@ def create_report_file(diff_sys_output, mode="xml",
         report += "Hash directory: " + hash_dir + "\n"
         report += "\tunchanged files:\n"
         for file in diff_sys_output.unchanged_files:
-            report += "\t\t" + getReportPath(path_rel_abs, file.path, hash_dir) + "\n"
+            report += "\t\t" + get_report_path(path_rel_abs, file.path, hash_dir) + "\n"
         report += "\tchanged files:\n"
         for file in diff_sys_output.changed_files:
-            report += "\t\t" + getReportPath(path_rel_abs, file.path, hash_dir) + "\n"
+            report += "\t\t" + get_report_path(path_rel_abs, file.path, hash_dir) + "\n"
         report += "\tremoved files:\n"
         for file in diff_sys_output.removed_files:
-            report += "\t\t" + getReportPath(path_rel_abs, file.path, hash_dir) + "\n"
+            report += "\t\t" + get_report_path(path_rel_abs, file.path, hash_dir) + "\n"
         report += "\tnew files:\n"
         for file in diff_sys_output.new_files:
-            report += "\t\t" + getReportPath(path_rel_abs, file.path, hash_dir) + "\n"
+            report += "\t\t" + get_report_path(path_rel_abs, file.path, hash_dir) + "\n"
         report += "\tmoved files:\n"
         for file in diff_sys_output.moved_files:
-            report += "\t\t" + getReportPath(path_rel_abs, file[0].path, hash_dir) + " moved to " + getReportPath(
+            report += "\t\t" + get_report_path(path_rel_abs, file[0].path, hash_dir) + " moved to " + get_report_path(
                 path_rel_abs, file[1], hash_dir) + "\n"
 
         report_file = get_file("report.txt", report_file_dir, "w", ".txt")
@@ -256,7 +258,7 @@ def create_report_file(diff_sys_output, mode="xml",
         print("report txt file created: " + report_file.name)
 
 
-def getReportPath(path_rel_abs, path, root_path):
+def get_report_path(path_rel_abs, path, root_path):
     if path_rel_abs == "a":
         return path
     elif path_rel_abs == "r":
@@ -274,21 +276,27 @@ def help_flow():
     print("PyDiffSec - скрипт, для контроля изменений файловой системы\n\n")
     print("Команды:\n\n")
     print("'help' - выводит сообщение с описанием комманд\n\n")
-    print("'new [-d fileDir] [-hd hashDir]' - создание нового базового файла (запись sha1 хэшей всех файлов в выбранной директории)\n")
-    print("\t [-d fileDir] - указание директории для создания базового файла (по умолчанию - текущая директория/basefile/)\n")
+    print("'new [-d fileDir] [-hd hashDir]' - создание нового базового файла (запись sha1 хэшей всех файлов в "
+          "выбранной директории)\n")
+    print("\t [-d fileDir] - указание директории для создания базового файла (по умолчанию - текущая "
+          "директория/basefile/)\n")
     print("\t [-hd hashDir] - указание директории, которую нужно хэшировать (по умолчанию - текущая директория)\n\n")
 
-    print("'report [-rd reportFileDir] [-bd baseFileDir] [-r|-a pathInReport] [-xml|-txt reportFormat]' - создание нового отчета изменений файлов\n")
-    print("\t [-rd reportFileDir] - указание директории для создания отчета (по умолчанию - текущая директория/basefile/)\n")
-    print("\t [-bd baseFileDir] - указание директории, в которой находится базовый файл (по умолчанию - текущая директория/basefile/)\n\n")
-    print("\t [-r|-a pathInReport] - выбор формата путей файлов в отчете (относительный|полный) (по умолчанию - полный)\n")
+    print("'report [-rd reportFileDir] [-bd baseFileDir] [-r|-a pathInReport] [-xml|-txt reportFormat]' - создание "
+          "нового отчета изменений файлов\n")
+    print("\t [-rd reportFileDir] - указание директории для создания отчета (по умолчанию - текущая "
+          "директория/basefile/)\n")
+    print("\t [-bd baseFileDir] - указание директории, в которой находится базовый файл (по умолчанию - текущая "
+          "директория/basefile/)\n\n")
+    print("\t [-r|-a pathInReport] - выбор формата путей файлов в отчете (относительный|полный) (по умолчанию - "
+          "полный)\n")
     print("\t [-xml|-txt reportFormat] - выбор формата отчета (по умолчанию - xml)\n\n")
 
 
 def create_basefile_flow(arguments):
-    if (len(arguments) == 2):
+    if len(arguments) == 2:
         create_base_file(str(pathlib.Path().absolute()))
-    elif (len(arguments) > 2):
+    elif len(arguments) > 2:
         file_dir = str(pathlib.Path().absolute()) + Constants.CONST_DEF_BASE_FILE_DIRECTORY
         hash_dir = str(pathlib.Path().absolute())
         next_arg = ""
@@ -305,12 +313,12 @@ def create_basefile_flow(arguments):
 
             next_arg = argument
         if next_arg != "":
-            if (next_arg not in ["-d", "-hd"]):
+            if next_arg not in ["-d", "-hd"]:
                 print("No argument " + next_arg + " found; type 'help' for help")
                 return
             print("You wanted to put " + next_arg + " argument, but did not provide any value; type 'help' for help")
             return
-        if (file_dir[-1] != "/"):
+        if file_dir[-1] != "/":
             file_dir += "/"
         create_base_file(hash_dir, file_dir)
 
@@ -322,14 +330,14 @@ def report_flow(arguments):
     report_format = "xml"
     hash_dir = str(pathlib.Path().absolute())
 
-    if (len(arguments) == 2):
+    if len(arguments) == 2:
         sys_hash_output = get_file_hash_from_base_file(base_file_directory=base_file_dir)
         compare_hash_output = get_file_hash_from_base_file(create_compare_file(sys_hash_output.hashing_directory).name,
                                                            "")
         diff = get_dif_sys_output(sys_hash_output, compare_hash_output)
         create_report_file(diff, report_format, report_file_dir, path_rel_abs, hash_dir)
         return
-    elif (len(arguments) > 2):
+    elif len(arguments) > 2:
         next_arg = ""
         for argument in arguments[2:]:
             if next_arg == "-rd":
@@ -360,15 +368,15 @@ def report_flow(arguments):
 
             next_arg = argument
         if next_arg != "":
-            if (next_arg not in ["-rd", "-bd"]):
+            if next_arg not in ["-rd", "-bd"]:
                 print("No argument " + next_arg + " found; type 'help' for help")
                 return
             print("You wanted to put " + next_arg + " argument, but did not provide any value; type 'help' for help")
             return
 
-        if (report_file_dir[-1] != "/"):
+        if report_file_dir[-1] != "/":
             report_file_dir += "/"
-        if (base_file_dir[-1] != "/"):
+        if base_file_dir[-1] != "/":
             base_file_dir += "/"
 
         sys_hash_output = get_file_hash_from_base_file(base_file_directory=base_file_dir)
@@ -381,7 +389,6 @@ def report_flow(arguments):
 
 def main():
     arguments = sys.argv
-    # arguments = ["main.py","report","-rd","/Users/gleb/Desktop"]
     if len(arguments) == 1 or arguments[1] == "help":
         help_flow()
 
@@ -390,11 +397,6 @@ def main():
 
     if len(arguments) > 1 and arguments[1] == "report":
         report_flow(arguments)
-    # sys_hash_output = get_file_hash_from_base_file()
-    # compare_hash_output = get_file_hash_from_base_file(create_compare_file(sys_hash_output.hashing_directory).name, "")
-    # diff = get_dif_sys_output(sys_hash_output, compare_hash_output)
-    #
-    # create_report_file(diff, "txt")
 
 
 if __name__ == '__main__':
