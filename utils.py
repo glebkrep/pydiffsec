@@ -1,7 +1,7 @@
 import hashlib
 
 import os
-
+from pathlib import Path
 
 # gets sha1 of file... -_-
 def get_sha1_of_file(file_path):
@@ -21,12 +21,15 @@ def get_sha1_of_file(file_path):
 # creates base file in specified directory which will store current hashes of files in path
 # a - append
 # w - overwrite
-def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt"):
-    # todo if already contains .txt dont add that
+def get_file(base_file_name, absolute_file_path='', mode='a', ext=".txt",overwrite=True):
     full_file_name = absolute_file_path + base_file_name
     if ext not in base_file_name:
         full_file_name += ext
-
+    if Path(full_file_name).is_file() and overwrite==False:
+        if ("y" in input("File already exists, overwrite? [y/n]: ...")):
+            return get_file(base_file_name, absolute_file_path, mode, ext, True)
+        else:
+            return False
     os.makedirs(os.path.dirname(full_file_name), exist_ok=True)
     return open(full_file_name, mode)
 
